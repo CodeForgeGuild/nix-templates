@@ -1,0 +1,76 @@
+name: SonarQube
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  sonarqube:
+    name: Scan and Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # =======================================================================
+      # Uncomment and adapt one of the language blocks below before using.
+      # =======================================================================
+
+      # -- Go --
+      # - uses: actions/setup-go@v5
+      #   with:
+      #     go-version-file: go.mod
+      #     cache: true
+      #
+      # - name: golangci-lint
+      #   uses: golangci/golangci-lint-action@v8
+      #   with:
+      #     version: v2.4.0
+      #     install-only: true
+      #
+      # - name: Run golangci-lint
+      #   run: golangci-lint run ./... --output.checkstyle.path golangci-lint.xml --output.text.path stdout
+      #
+      # - name: Run tests
+      #   run: |
+      #     go test -cover -coverprofile=coverage.out -short -v ./... \
+      #       || { e=$?; [ "$e" -eq 5 ] && exit 0; exit "$e"; }
+
+      # -- Python --
+      # - uses: astral-sh/setup-uv@v5
+      #   with:
+      #     enable-cache: true
+      #
+      # - run: uv sync --group dev --frozen
+      #
+      # - name: MyPy
+      #   run: uv run mypy --xml-report mypy.xml .
+      #
+      # - name: Ruff
+      #   run: uv run ruff check --output-format junit --output-file ruff.xml
+      #
+      # - name: Tests
+      #   run: |
+      #     uv run pytest --cov=src --cov-report=xml -v \
+      #       || { e=$?; [ "$e" -eq 5 ] && exit 0; exit "$e"; }
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: >
+            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
+            -Dsonar.pullrequest.branch=${{ github.head_ref }}
+            -Dsonar.pullrequest.base=${{ github.base_ref }}
+            -Dsonar.scm.revision=${{ github.event.pull_request.head.sha }}
+
+      - name: Quality Gate check
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}

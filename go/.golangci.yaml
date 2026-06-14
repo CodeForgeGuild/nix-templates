@@ -1,0 +1,10 @@
+version: "2"
+
+output:
+  formats:
+    checkstyle:
+      path: golangci-lint.xml
+
+issues:
+  uniq-by-line: true
+  max-issues-per-linter: 0
